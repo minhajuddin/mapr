@@ -3,7 +3,11 @@ RSpec.describe Mapr do
     expect(Mapr::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  it "maps simple objects" do
+    user = Mapr.map(<<~SCHEMA, {"FirstName" => "Danny", "LastName" => "K"})
+    :first_name: "FirstName"
+    :last_name: "LastName"
+    SCHEMA
+    expect(user).to eq(first_name: "Danny", last_name: "K")
   end
 end
