@@ -6,15 +6,17 @@ RSpec.describe Mapr do
   describe '#map' do
     it "one level finders" do
       user = Mapr.map(<<~SCHEMA, {"FirstName" => "Danny", "LastName" => "K"})
-    :first_name: "FirstName"
-    :last_name: "LastName"
+      :first_name: "FirstName"
+      :last_name: "LastName"
       SCHEMA
       expect(user).to eq(first_name: "Danny", last_name: "K")
     end
 
     it "2 level finders" do
       user = Mapr.map(<<~SCHEMA, {"Name" => {"FirstName" => "Danny", "LastName" => "K"}})
-      :first_name: Name/FirstName
+      :first_name:
+        - Name
+        - FirstName
       :last_name: Name/LastName
       SCHEMA
       expect(user).to eq(first_name: "Danny", last_name: "K")
@@ -27,6 +29,25 @@ RSpec.describe Mapr do
       :last_name: User/Name/LastName
       SCHEMA
       expect(user).to eq(id: 3, first_name: "Danny", last_name: "K")
+    end
+
+    it "array finders" do
+      user = Mapr.map(<<~SCHEMA, {"User" => {"Id" => 3, "Name" => {"FirstName" => "Danny", "LastName" => "K"}}})
+      :id: [User, Id]
+      :first_name: [User, Name, FirstName]
+      :last_name: [User, Name, LastName]
+      SCHEMA
+      expect(user).to eq(id: 3, first_name: "Danny", last_name: "K")
+    end
+
+    it "constants" do
+      user = Mapr.map(<<~SCHEMA, {"User" => {"Id" => 3, "Name" => {"FirstName" => "Danny", "LastName" => "K"}}})
+      :id: [User, Id]
+      :first_name: [User, Name, FirstName]
+      :last_name: [User, Name, LastName]
+      :provider: +Doritos
+      SCHEMA
+      expect(user).to eq(id: 3, first_name: "Danny", last_name: "K", provider: "Doritos")
     end
 
     it "simple array finders" do
@@ -49,10 +70,20 @@ RSpec.describe Mapr do
     it "complex array finders" do
       user = Mapr.map(<<~SCHEMA, {"Users" => [{"Name" => "Danny"}, {"Name" => "Mujju"}]})
       :user_1_name: Users/0/Name
-      :user_2_name: Users/1/Name
+      :user_2_name: [Users, 1, Name]
       SCHEMA
       expect(user).to eq(user_1_name: "Danny", user_2_name: "Mujju")
     end
+
+    it "complex array finders with missing data" do
+      user = Mapr.map(<<~SCHEMA, {"Users" => [{"Name" => {"fn" => "Danny"}}, {"Name" => "Mujju"}]})
+      :user_1_missing_name: MissingKey/0/Name/fn
+      :user_1_name: Users/0/Name/fn
+      :user_2_name: [Users, 1, Name]
+      SCHEMA
+      expect(user).to eq(user_1_missing_name: nil,user_1_name: "Danny", user_2_name: "Mujju")
+    end
+
 
     it "throws an error for invalid paths" do
       expect {

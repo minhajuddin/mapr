@@ -6,6 +6,8 @@ module Mapr
 
   module_function
 
+  CONSTANT_PREFIX = /\A\+/
+
   def map(schema, data)
     YAML.load(schema)
       .transform_values do |path|
@@ -14,11 +16,18 @@ module Mapr
   end
 
   def dig(data, path)
-    data.dig(*parse_path(path))
+    case path
+    when CONSTANT_PREFIX
+      path.gsub(CONSTANT_PREFIX, "")
+    else
+      data.dig(*parse_path(path))
+    end
   end
 
   def parse_path(path)
     case path
+    when Array
+      path
     when String
       path.split("/")
         .map(&method(:transform_path_token))
