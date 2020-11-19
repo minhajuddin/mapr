@@ -14,7 +14,7 @@ module Mapr
   end
 
   def dig(data, path)
-    data.dig(path)
+    data.dig(*path.split("/"))
   end
 
 end
